@@ -1,0 +1,8 @@
+*.key
+*.csr
+*.crt
+*.log
+*.tgz
+*.tar.gz
+target/
+.git/

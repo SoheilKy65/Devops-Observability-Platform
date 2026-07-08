@@ -1,0 +1,64 @@
+global:
+  imageRegistry: 192.168.2.230
+
+grafana:
+  image:
+    registry: 192.168.2.230
+    repository: monitoring/grafana
+    tag: 13.0.1-security-01
+  sidecar:
+    image:
+      registry: 192.168.2.230
+      repository: monitoring/k8s-sidecar
+      tag: 2.7.3
+  persistence:
+    enabled: true
+    storageClassName: nfs-csi
+    accessModes:
+      - ReadWriteOnce
+    size: 5Gi
+
+prometheus:
+  prometheusSpec:
+    image:
+      registry: 192.168.2.230
+      repository: monitoring/prometheus
+      tag: v3.12.0-distroless
+
+alertmanager:
+  alertmanagerSpec:
+    image:
+      registry: 192.168.2.230
+      repository: monitoring/alertmanager
+      tag: v0.32.2
+
+prometheusOperator:
+  image:
+    registry: 192.168.2.230
+    repository: monitoring/prometheus-operator
+    tag: v0.91.0
+  prometheusConfigReloader:
+    image:
+      repository: monitoring/prometheus-config-reloader
+      tag: v0.91.0
+  admissionWebhooks:
+    patch:
+      image:
+        registry: 192.168.2.230
+        repository: monitoring/kube-webhook-certgen
+        tag: 1.8.3
+
+kube-state-metrics:
+  image:
+    registry: 192.168.2.230
+    repository: monitoring/kube-state-metrics
+    tag: v2.19.0
+
+prometheus-node-exporter:
+  image:
+    registry: 192.168.2.230
+    repository: monitoring/node-exporter
+    tag: v1.11.1
+    # چون نسخه پیش‌فرض chart distroless است، این را حذف کن یا false نگذار
+    distroless: true
+

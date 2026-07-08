@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nfs-csi-controller-sa
+  namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: csi-nfs-controller
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: csi-nfs-controller
+  template:
+    metadata:
+      labels:
+        app: csi-nfs-controller
+    spec:
+      serviceAccountName: nfs-csi-controller-sa
+      containers:
+      - name: nfs-plugin
+        image: m.daocloud.io/registry.k8s.io/sig-storage/nfsplugin:v4.6.0
+        args:
+          - "--endpoint=$(CSI_ENDPOINT)"
+          - "--nodeid=$(NODE_ID)"
+          - "--v=5"
+        env:
+        - name: CSI_ENDPOINT
+          value: unix:///csi/csi.sock
+        - name: NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        volumeMounts:
+        - name: socket-dir
+          mountPath: /csi
+      - name: csi-provisioner
+        image: m.daocloud.io/registry.k8s.io/sig-storage/csi-provisioner:v3.5.0
+        args:
+          - "--csi-address=$(ADDRESS)"
+          - "--v=5"
+        env:
+        - name: ADDRESS
+          value: /csi/csi.sock
+        volumeMounts:
+        - name: socket-dir
+          mountPath: /csi
+      volumes:
+      - name: socket-dir
+        emptyDir: {}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: csi-nfs-node
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: csi-nfs-node
+  template:
+    metadata:
+      labels:
+        app: csi-nfs-node
+    spec:
+      containers:
+      - name: nfs-plugin
+        image: m.daocloud.io/registry.k8s.io/sig-storage/nfsplugin:v4.6.0
+        securityContext:
+          privileged: true
+        args:
+          - "--endpoint=$(CSI_ENDPOINT)"
+          - "--nodeid=$(NODE_ID)"
+          - "--v=5"
+        env:
+        - name: CSI_ENDPOINT
+          value: unix:///csi/csi.sock
+        - name: NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        volumeMounts:
+        - name: socket-dir
+          mountPath: /csi
+      volumes:
+      - name: socket-dir
+        hostPath:
+          path: /var/lib/kubelet/plugins/nfs.csi.k8s.io
+          type: DirectoryOrCreate
